@@ -16,7 +16,7 @@ def process_entry(match, cat_string):
     res = conn.getresponse()
     data = res.read()
     if res.status == 200:
-        b = BookRaw(book_raw_id=number, category=cat_string, text_raw=data)
+        b = BookRaw(book_raw_id=number, category=cat_string, text=data)
         from datetime import datetime
         b.save()
         print "saved " + str(number)
