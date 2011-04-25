@@ -37,11 +37,41 @@ CREATE TABLE hash (
     hash character varying(32) NOT NULL,
     experiment_id smallint NOT NULL,
     class_id smallint NOT NULL,
-    count integer NOT NULL
+    count integer NOT NULL,
+    text text,
+    hash_id integer NOT NULL
 );
 
 
 ALTER TABLE public.hash OWNER TO david;
+
+--
+-- Name: hash_hash_id_seq; Type: SEQUENCE; Schema: public; Owner: david
+--
+
+CREATE SEQUENCE hash_hash_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.hash_hash_id_seq OWNER TO david;
+
+--
+-- Name: hash_hash_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: david
+--
+
+ALTER SEQUENCE hash_hash_id_seq OWNED BY hash.hash_id;
+
+
+--
+-- Name: hash_id; Type: DEFAULT; Schema: public; Owner: david
+--
+
+ALTER TABLE hash ALTER COLUMN hash_id SET DEFAULT nextval('hash_hash_id_seq'::regclass);
+
 
 --
 -- Name: book_raw_pkey; Type: CONSTRAINT; Schema: public; Owner: david; Tablespace: 
@@ -56,7 +86,14 @@ ALTER TABLE ONLY book_raw
 --
 
 ALTER TABLE ONLY hash
-    ADD CONSTRAINT hash_pkey PRIMARY KEY (experiment_id, hash, class_id);
+    ADD CONSTRAINT hash_pkey PRIMARY KEY (hash_id);
+
+
+--
+-- Name: hash_unique; Type: INDEX; Schema: public; Owner: david; Tablespace: 
+--
+
+CREATE UNIQUE INDEX hash_unique ON hash USING btree (hash, experiment_id, class_id);
 
 
 --
