@@ -1,6 +1,7 @@
 import settings
 from django.db import models
 from datetime import datetime
+import category
 
 class BookRaw(models.Model):
     book_raw_id = models.IntegerField(primary_key = True)
@@ -12,22 +13,16 @@ class BookRaw(models.Model):
         db_table = 'book_raw'
 
     def getCategoryId(self):
-        categories = {'fantasy': 46,
-                      'love': 2487,
-                      'children': 1415,
-                      'poetry': 13,
-                      'sf': 36,
-                      'detective': 1123,
-                      'adventure': 2849,
-                      'comedies': 776
-                      };
-        return categories[self.category]
+        return category.get_category_id(self.category)
+
 
 class Hash(models.Model):
-    hash          = models.CharField(max_length=32, primary_key = True)
-    experiment_id = models.IntegerField(primary_key = True)
-    class_id      = models.IntegerField(primary_key = True)
+    hash_id       = models.AutoField(primary_key = True)
+    hash          = models.CharField(max_length=32)
+    experiment_id = models.IntegerField()
+    class_id      = models.IntegerField()
     count         = models.IntegerField()
+    text          = models.TextField(null = True)
 
     class Meta:
         db_table = 'hash'
