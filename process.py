@@ -9,28 +9,23 @@ from inc.models import *
 
 import algorithm
 
- 
-
-def process(book):
-    excerpt = get_random_part_of_text(book.text, 1000)
-    #print excerpt
-    words = get_words_for_string(excerpt)
-    #print words
-
+def process(book, experiment_id, algo, get_words, length):
+    words = get_words(book, length)
     """make statistical analysis"""
-    genre = algorithm.bayes(words, 1)
-    stat.setdefault(book.category, [0,0]) 
+    genre = algo(words, 1)
+    stat.setdefault(experiment_id, {})
+    stat[experiment_id].setdefault(book.category, [0,0]) 
     if genre != book.getCategoryId():
         algorithm.classify(words, 1, book.getCategoryId()) 
         print 'wrong', book.category, len(words)
-        stat[book.category][1] += 1
+        stat[experiment_id][book.category][1] += 1
     else:
         print 'right', book.category
-        stat[book.category][0] += 1
+        stat[experiment_id][book.category][0] += 1
 
     sys.stdout.flush()
 
-def get_random_part_of_text(text, excerpt_length):
+def get_text_without_header(text):
     text = re.sub(r'End of the Project Gutenberg(?:.|\n)*', '', text, 1)
     text = re.sub(r'(?:.|\n)*?(\*+ START OF TH(?:IS|E) PROJECT GUTENBERG EBOOK' + \
                   r'|with this eBook or online at www.gutenberg.(?:net|org)' + \
@@ -40,6 +35,9 @@ def get_random_part_of_text(text, excerpt_length):
                   r'(?:Produced by .*[\r\n]+|)', '', text, 1)
 
     #print text
+    return text
+
+def get_random_part_of_text(text, excerpt_length):
     length = len(text);
     import random
     start = random.randint(0, max(length-excerpt_length, 0))
@@ -58,6 +56,20 @@ def get_words_for_string(text):
     #words = map(lambda x: x.lower(), words)
     return words
 
+def get_words_single(book, length):
+    text = get_text_without_header(book.text)
+    excerpt = get_random_part_of_text(book.text, length)
+    #print excerpt
+    words = get_words_for_string(excerpt)
+    #print words
+    return words
+
+def get_words_single_start(book, length):
+    text = get_text_without_header(book.text)[0:length]
+    words = get_words_for_string(excerpt)
+    return words
+
+
 start = int(sys.argv[1])
 try:
     end = int(sys.argv[2])
@@ -72,9 +84,12 @@ for i in range(start, end):
                                                 .exclude(category='fantasy')
     if book:
         print '\nbook ' + str(i)
-        process(book[0])
+        process(book[0], 0, algorithm.bayes, get_words_single, 1000)
+        process(book[0], 1, algorithm.bayes, get_words_single, 1000)
 
 print "\n\nStatistical analysis:"
-for cat, s in stat.iteritems():
-    print cat + ':\tright:\t', str(s[0]), '\twrong:\t', str(s[1])
+for id, exp in stat.iteritems():
+    print "\nExperiment %d:" % id
+    for cat, s in exp.iteritems():
+        print cat + ':\tright:\t', str(s[0]), '\twrong:\t', str(s[1])
     
