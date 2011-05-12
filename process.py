@@ -9,14 +9,21 @@ from inc.models import *
 
 import algorithm
 
-def process(book, experiment_id, algo, get_words, length):
+def train_on_error(book, experiment_id, algo, get_words, length, **kwargs):
     words = get_words(book, length)
+
+    genre = algo(words, experiment_id, **kwargs)
+
     """make statistical analysis"""
-    genre = algo(words, 1)
     stat.setdefault(experiment_id, {})
     stat[experiment_id].setdefault(book.category, [0,0]) 
+
     if genre != book.getCategoryId():
-        algorithm.classify(words, 1, book.getCategoryId()) 
+        """ classifier is different for different algorithms """
+        if algo == algorithm.bayes: 
+            algorithm.classify(words, experiment_id, book.getCategoryId()) 
+        else:
+            algorithm.classify(words, experiment_id, book.book_raw_id) 
         print 'wrong', book.category, len(words)
         stat[experiment_id][book.category][1] += 1
     else:
@@ -66,7 +73,7 @@ def get_words_single(book, length):
 
 def get_words_single_start(book, length):
     text = get_text_without_header(book.text)[0:length]
-    words = get_words_for_string(excerpt)
+    words = get_words_for_string(text)
     return words
 
 
@@ -77,6 +84,14 @@ except IndexError:
     end = start + 1
 
 stat = {}
+experiments = ["bayes single words 1000",
+               "bayes single words start 1000",
+               "1  k_nearest_neighbor single words", 
+               "3  k_nearest_neighbor single words", 
+               "5  k_nearest_neighbor single words", 
+               "10 k_nearest_neighbor single words", 
+               ]
+
 for i in range(start, end):
     book = BookRaw.objects.filter(book_raw_id=i).exclude(category='children') \
                                                 .exclude(category='sf') \
@@ -84,12 +99,16 @@ for i in range(start, end):
                                                 .exclude(category='fantasy')
     if book:
         print '\nbook ' + str(i)
-        process(book[0], 0, algorithm.bayes, get_words_single, 1000)
-        process(book[0], 1, algorithm.bayes, get_words_single, 1000)
+        train_on_error(book[0], 0, algorithm.bayes, get_words_single, 1000)
+        train_on_error(book[0], 1, algorithm.bayes, get_words_single_start, 1000)
+        train_on_error(book[0], 2, algorithm.k_nearest_neighbor, get_words_single, 1000, k_nearest_neighbor=1)
+        train_on_error(book[0], 3, algorithm.k_nearest_neighbor, get_words_single, 1000, k_nearest_neighbor=3)
+        train_on_error(book[0], 4, algorithm.k_nearest_neighbor, get_words_single, 1000, k_nearest_neighbor=5)
+        train_on_error(book[0], 5, algorithm.k_nearest_neighbor, get_words_single, 1000, k_nearest_neighbor=10)
 
 print "\n\nStatistical analysis:"
 for id, exp in stat.iteritems():
-    print "\nExperiment %d:" % id
+    print "\nExperiment %d (%s):" % (id, experiments[id])
     for cat, s in exp.iteritems():
         print cat + ':\tright:\t', str(s[0]), '\twrong:\t', str(s[1])
     
