@@ -6,7 +6,7 @@ import sys
 import re
 import hashlib
 from inc.models import *
-
+from Numeric import *
 import algorithm
 
 def train_on_error(book, experiment_id, algo, get_words, length, **kwargs):
@@ -84,6 +84,7 @@ except IndexError:
     end = start + 1
 
 stat = {}
+exp_stat = zeros((6,3))
 experiments = ["bayes single words 1000",
                "bayes single words start 1000",
                "1  k_nearest_neighbor single words", 
@@ -91,24 +92,68 @@ experiments = ["bayes single words 1000",
                "5  k_nearest_neighbor single words", 
                "10 k_nearest_neighbor single words", 
                ]
+try:
+    letter_count = int(sys.argv[3])
+except IndexError:
+    letter_count = 1000
 
-for i in range(start, end):
-    book = BookRaw.objects.filter(book_raw_id=i).exclude(category='children') \
-                                                .exclude(category='sf') \
-                                                .exclude(category='love') \
-                                                .exclude(category='fantasy')
-    if book:
-        print '\nbook ' + str(i)
-        train_on_error(book[0], 0, algorithm.bayes, get_words_single, 1000)
-        train_on_error(book[0], 1, algorithm.bayes, get_words_single_start, 1000)
-        train_on_error(book[0], 2, algorithm.k_nearest_neighbor, get_words_single, 1000, k_nearest_neighbor=1)
-        train_on_error(book[0], 3, algorithm.k_nearest_neighbor, get_words_single, 1000, k_nearest_neighbor=3)
-        train_on_error(book[0], 4, algorithm.k_nearest_neighbor, get_words_single, 1000, k_nearest_neighbor=5)
-        train_on_error(book[0], 5, algorithm.k_nearest_neighbor, get_words_single, 1000, k_nearest_neighbor=10)
+for n in range(0,5):
 
-print "\n\nStatistical analysis:"
+    stat = {}
+    adventure_count = 0;
+    poetry_count = 0;
+    detective_count = 0;
+
+    i = 0;
+    while(i < end and (adventure_count < start or poetry_count < start or detective_count < start)):
+        book = BookRaw.objects.filter(book_raw_id=i).exclude(category='children') \
+                                                    .exclude(category='sf') \
+                                                    .exclude(category='love') \
+                                                    .exclude(category='fantasy') \
+                                                    .exclude(category='comedies')
+        if adventure_count >= start:
+            book = book.exclude(category='adventure')
+        if poetry_count >= start:
+            book = book.exclude(category='poetry')
+        if detective_count >= start:
+            book = book.exclude(category='detective')                                        
+        
+        if book:
+            if(book[0].category == 'adventure'):
+                adventure_count+=1
+            if(book[0].category == 'poetry'):
+                poetry_count+=1
+            if(book[0].category == 'detective'):
+                detective_count+=1
+
+            print '\nbook ' + str(i)
+            train_on_error(book[0], 0, algorithm.bayes, get_words_single, letter_count)
+            train_on_error(book[0], 1, algorithm.bayes, get_words_single_start, letter_count)
+            train_on_error(book[0], 2, algorithm.k_nearest_neighbor, get_words_single, letter_count, k_nearest_neighbor=1)
+            train_on_error(book[0], 3, algorithm.k_nearest_neighbor, get_words_single, letter_count, k_nearest_neighbor=3)
+            train_on_error(book[0], 4, algorithm.k_nearest_neighbor, get_words_single, letter_count, k_nearest_neighbor=5)
+            train_on_error(book[0], 5, algorithm.k_nearest_neighbor, get_words_single, letter_count, k_nearest_neighbor=10)
+        i += 1
+
+    print "\n\nStatistical analysis:"
+    exp_nr = 0
+    for id, exp in stat.iteritems():
+        print "\nExperiment %d (%s):" % (id, experiments[id])
+        cat_nr = 0        
+        for cat, s in exp.iteritems():
+            print cat + ':\tright:\t', str(s[0]), '\twrong:\t', str(s[1])
+            exp_stat[exp_nr][cat_nr] += s[0]
+            cat_nr += 1
+        exp_nr += 1
+     
 for id, exp in stat.iteritems():
-    print "\nExperiment %d (%s):" % (id, experiments[id])
+    print "\nExperiment %d (%s):" % (id, experiments[id]) 
+    q = 0
     for cat, s in exp.iteritems():
-        print cat + ':\tright:\t', str(s[0]), '\twrong:\t', str(s[1])
-    
+        right_count = exp_stat[id][q]
+        wrong_count = start*5 - right_count
+        quote = float(right_count) / (start*5)
+        print cat + ':\tright:\t'+str(right_count)+'\twrong:\t'+str(wrong_count)+'\tquote:\t'+str(quote)
+        q += 1
+            
+            
