@@ -42,8 +42,8 @@ def bayes(words, experiment_id, **kwargs):
                     #probabillity[test.class_id] = 0#test.count/count
     #print probabillity;
     sort = sorted(probabillity.iteritems(), key=operator.itemgetter(1), reverse=True)
-    for i in range(0, min(3, len(probabillity))):
-        print category.get_category_for_id(sort[i][0]) + ':', '%.3f' % sort[i][1]
+    #for i in range(0, min(3, len(probabillity))):
+        #print category.get_category_for_id(sort[i][0]) + ':', '%.3f' % sort[i][1]
         
     if probabillity:
         result = max(probabillity, key=probabillity.get)
